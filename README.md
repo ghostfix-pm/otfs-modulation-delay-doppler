@@ -9,7 +9,7 @@
 
 **What you get.** Delay-Doppler heatmaps of the channel and of a pilot/data frame, and a BER-vs-SNR curve (below 2e-3 at 18 dB over random three-path channels).
 
-**Run it.** `python python/otfs_sim.py`
+**Run it.** `python python/otfs_sim.py` (or `python -m otfs` after `pip install -e .`)
 
 ---
 
@@ -99,6 +99,8 @@ $$
 
 with damping between iterations to aid convergence; the final decision maximises the same product taken over all connected observations. The complexity grows only linearly with $NM$ and $P$.
 
+The implementation routes the messages over the $P$ non-zero entries of each row and column instead of over the full $NM \times NM$ grid, so the cost of one iteration is $O(P \cdot NM \cdot |\mathbb{A}|)$ and the working set no longer grows with $(NM)^2$: at $N \times M = 32 \times 32$ a frame is detected in 0.07 s with 9 MB of temporary arrays, against 4.3 s and 362 MB for the dense formulation, with identical decisions. The dense version is kept in `otfs.detector.mp_detect(method="dense")` and the test suite asserts that both agree.
+
 ## 5. Results
 
 ### 5.1 Illustrative Frame
@@ -136,6 +138,8 @@ The received pilot frame (Figure 2, bottom-left) reproduces the channel of Figur
 
 OTFS outperforms the single-tap Rayleigh reference across the SNR range, and the gap widens with SNR — from a factor of about 2 at 10 dB ($2.3 \times 10^{-2}$ vs. $4.4 \times 10^{-2}$) to about 3–4 at 16–20 dB. The steeper slope between 8 and 16 dB reflects the additional diversity collected from the resolvable delay-Doppler paths. At the highest SNRs the slope flattens, which is attributable to the small frame, to channel realisations in which paths fall on the same delay bin, and to the sub-optimality of Gaussian-approximation message passing; larger frames and more paths would increase the achievable diversity [5].
 
+Every point of the curve is reproducible and inspectable: `python -m otfs ber --frames 3000 --json` reports the error count and the number of simulated bits behind each point, and an SNR point where no error occurred is shown with its 95% upper bound $3/N_{\text{bits}}$ (open marker in the figure) rather than as an exact zero.
+
 ## 6. Conclusion
 
 OTFS converts a doubly-dispersive channel into a sparse, quasi-static two-dimensional convolution in the delay-Doppler domain. A discrete transceiver model and its effective channel matrix were implemented, the input–output behaviour was visualised on an illustrative frame, and a message-passing detector exploiting the channel sparsity was shown to recover the transmitted symbols and to deliver a diversity gain over flat Rayleigh fading. These properties make OTFS a strong candidate waveform for high-mobility scenarios in 5G-Advanced and 6G. Embedded-pilot channel estimation, fractional Doppler, comparison with OFDM under identical conditions and MIMO-OTFS are natural extensions.
@@ -154,9 +158,17 @@ otfs-modulation-delay-doppler/
 │   ├── generate_received_signal.m
 │   └── non_null_index.m           # sparsity pattern of H for the factor graph
 ├── python/
-│   └── otfs_sim.py                # NumPy re-implementation; regenerates all figures and BER curve
+│   ├── otfs/
+│   │   ├── channel.py             # tap validation + the two DD channel models
+│   │   ├── detector.py            # sparse message passing, MMSE baseline
+│   │   ├── sim.py                 # Monte-Carlo BER, toy example
+│   │   ├── figures.py             # the three figures
+│   │   └── cli.py                 # python -m otfs
+│   └── otfs_sim.py                # NumPy study; regenerates all figures and the BER curve
+├── tests/                         # pytest suite for the Python implementation
 ├── docs/figures/
-├── requirements.txt
+├── pyproject.toml
+├── requirements.txt               # numpy + matplotlib, for pip install -r
 └── LICENSE
 ```
 
@@ -168,9 +180,21 @@ otfs_mp_detection
 
 ```bash
 # Python
-pip install -r requirements.txt
-python python/otfs_sim.py --frames 3000
+pip install -e ".[dev]"          # numpy + matplotlib + pytest
+python -m otfs                   # toy example, figures and the BER curve
+python -m otfs ber --frames 3000 --grid 4x8 --json   # one command, machine-readable output
+pytest                           # 121 tests
 ```
+
+`python python/otfs_sim.py --frames <n> --seed <n>` keeps working exactly as before.
+
+The package validates its inputs instead of guessing. The three tap vectors must
+have the same length (a shorter one used to be dropped by `zip`, turning a
+three-path channel into a two-path one), delays must be integral and inside the
+grid of the model in use (`l < M` for the reduced-CP model, `l < N` for the block
+model, which represents its delay-time response on N rows and silently discarded
+anything beyond), and frame counts must be positive: `--frames 0` used to end in
+`ZeroDivisionError` instead of an error message.
 
 The MATLAB message-passing routine builds on an openly available OTFS reference implementation and was adapted and documented for this study; the Python version is an independent, vectorised re-implementation.
 
