@@ -2,4 +2,11 @@ __pycache__/
 *.pyc
 *.asv
 .DS_Store
+
+# Python packaging and tooling
+build/
+dist/
+*.egg-info/
+.venv/
+.pytest_cache/
 .ruff_cache/
