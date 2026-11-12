@@ -5,6 +5,14 @@
 
 ---
 
+**What it is.** An OTFS simulator in MATLAB and Python: it builds the delay-Doppler channel matrix from a set of propagation paths and recovers the QAM symbols with an iterative message-passing (MP) detector.
+
+**What you get.** Delay-Doppler heatmaps of the channel and of a pilot/data frame, and a BER-vs-SNR curve (below 2e-3 at 18 dB over random three-path channels).
+
+**Run it.** `python python/otfs_sim.py`
+
+---
+
 > **Abstract.** Orthogonal frequency-division multiplexing (OFDM) performs well on frequency-selective channels but degrades in the presence of large Doppler spreads, as encountered in high-mobility and millimetre-wave links. Orthogonal time frequency space (OTFS) modulation addresses this by placing information symbols on a two-dimensional *delay-Doppler* grid, where a time-varying multipath channel becomes a sparse, quasi-static two-dimensional convolution and every symbol experiences approximately the same channel gain. This work develops a discrete OTFS transceiver model, constructs the effective delay-Doppler channel matrix from a set of propagation paths, and detects the transmitted QAM symbols with an iterative message-passing (MP) algorithm that exploits the sparsity of the channel. A small illustrative frame shows how a pilot and a data frame are spread by a two-path channel, and Monte-Carlo simulations over random three-path channels demonstrate a clear diversity advantage over single-tap Rayleigh fading, with the bit-error rate falling below $2 \times 10^{-3}$ at 18 dB.
 >
 > **Keywords:** OTFS, delay-Doppler domain, doubly-dispersive channel, high mobility, message passing, 5G/6G waveforms
